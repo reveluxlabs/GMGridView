@@ -42,19 +42,30 @@ typedef enum
     GMGridViewStyleSwap
 } GMGridViewStyle;
 
+typedef enum
+{
+	GMGridViewScrollPositionNone,
+	GMGridViewScrollPositionTop,
+	GMGridViewScrollPositionMiddle,
+	GMGridViewScrollPositionBottom
+} GMGridViewScrollPosition;
+
+typedef enum
+{
+    GMGridViewItemAnimationNone = 0,
+    GMGridViewItemAnimationFade,
+    GMGridViewItemAnimationScroll = 1<<7 // scroll to the item before showing the animation
+} GMGridViewItemAnimation;
 
 //////////////////////////////////////////////////////////////
 #pragma mark Interface GMGridView
 //////////////////////////////////////////////////////////////
 
 @interface GMGridView : UIView
-{
-    
-}
 
 // Delegates
 @property (nonatomic, gm_weak) NSObject<GMGridViewDataSource> *dataSource;                    // Required
-@property (nonatomic, gm_weak) NSObject<GMGridViewActionDelegate> *actionDelegate;            // Optional - to get taps callback
+@property (nonatomic, gm_weak) NSObject<GMGridViewActionDelegate> *actionDelegate;            // Optional - to get taps callback & deleting item
 @property (nonatomic, gm_weak) NSObject<GMGridViewSortingDelegate> *sortingDelegate;          // Optional - to enable sorting
 @property (nonatomic, gm_weak) NSObject<GMGridViewTransformationDelegate> *transformDelegate; // Optional - to enable fullsize mode
 
@@ -63,6 +74,7 @@ typedef enum
 
 // Editing Mode
 @property (nonatomic, getter=isEditing) BOOL editing; // Default is NO - When set to YES, all gestures are disabled and delete buttons shows up on cells
+- (void)setEditing:(BOOL)editing animated:(BOOL)animated;
 
 // Customizing Options
 @property (nonatomic, gm_weak) UIView *mainSuperView;                 // Default is self
@@ -74,11 +86,8 @@ typedef enum
 @property (nonatomic) BOOL showFullSizeViewWithAlphaWhenTransforming; // Default is YES - not working right now
 @property (nonatomic) BOOL showsVerticalScrollIndicator;              // Default is YES
 @property (nonatomic) BOOL showsHorizontalScrollIndicator;            // Default is YES
-
 @property (nonatomic, readonly) UIScrollView *scrollView;             // Messing with the scrollView can lead to unexpected behavior. Avoid changing any properties
                                                                       // or changing its delegate. You have been warned.
-
-
 
 // Reusable cells
 - (GMGridViewCell *)dequeueReusableCell;                              // Should be called in GMGridView:cellForItemAtIndex: to reuse a cell
@@ -88,11 +97,14 @@ typedef enum
 
 // Actions
 - (void)reloadData;
-- (void)insertObjectAtIndex:(NSInteger)index;
-- (void)removeObjectAtIndex:(NSInteger)index;
-- (void)reloadObjectAtIndex:(NSInteger)index;
-- (void)swapObjectAtIndex:(NSInteger)index1 withObjectAtIndex:(NSInteger)index2;
-- (void)scrollToObjectAtIndex:(NSInteger)index animated:(BOOL)animated;
+- (void)insertObjectAtIndex:(NSInteger)index withAnimation:(GMGridViewItemAnimation)animation;
+- (void)removeObjectAtIndex:(NSInteger)index withAnimation:(GMGridViewItemAnimation)animation;
+- (void)reloadObjectAtIndex:(NSInteger)index withAnimation:(GMGridViewItemAnimation)animation;
+- (void)swapObjectAtIndex:(NSInteger)index1 withObjectAtIndex:(NSInteger)index2 withAnimation:(GMGridViewItemAnimation)animation;
+- (void)scrollToObjectAtIndex:(NSInteger)index atScrollPosition:(GMGridViewScrollPosition)scrollPosition animated:(BOOL)animated;
+
+// Force the grid to update properties in an (probably) animated way.
+- (void)layoutSubviewsWithAnimation:(GMGridViewItemAnimation)animation;
 
 @end
 
@@ -110,8 +122,8 @@ typedef enum
 - (GMGridViewCell *)GMGridView:(GMGridView *)gridView cellForItemAtIndex:(NSInteger)index;
 
 @optional
-// Required to enable editing mode
-- (void)GMGridView:(GMGridView *)gridView deleteItemAtIndex:(NSInteger)index;
+/// Allow a cell to be deletable. If not implemented, YES is assumed.
+- (BOOL)GMGridView:(GMGridView *)gridView canDeleteItemAtIndex:(NSInteger)index;
 
 @end
 
@@ -124,6 +136,11 @@ typedef enum
 
 @required
 - (void)GMGridView:(GMGridView *)gridView didTapOnItemAtIndex:(NSInteger)position;
+
+@optional
+// Called when the delete-button has been pressed. Required to enable editing mode.
+// This method wont delete the cell automatically. Call the delete method of the gridView when appropriate.
+- (void)GMGridView:(GMGridView *)gridView processDeleteActionForItemAtIndex:(NSInteger)index;
 
 @end
 

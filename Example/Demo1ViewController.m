@@ -25,6 +25,7 @@
     UIPopoverController *_optionsPopOver;
     
     NSMutableArray *_data;
+    NSInteger _lastDeleteItemIndexAsked;
 }
 
 - (void)addMoreItem;
@@ -234,9 +235,9 @@
     return cell;
 }
 
-- (void)GMGridView:(GMGridView *)gridView deleteItemAtIndex:(NSInteger)index
+- (BOOL)GMGridView:(GMGridView *)gridView canDeleteItemAtIndex:(NSInteger)index
 {
-    [_data removeObjectAtIndex:index];
+    return YES; //index % 2 == 0;
 }
 
 //////////////////////////////////////////////////////////////
@@ -248,7 +249,23 @@
     NSLog(@"Did tap at index %d", position);
 }
 
+- (void)GMGridView:(GMGridView *)gridView processDeleteActionForItemAtIndex:(NSInteger)index
+{
+    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Confirm" message:@"Are you sure you want to delete this item?" delegate:self cancelButtonTitle:@"Cancel" otherButtonTitles:@"Delete", nil];
+    
+    [alert show];
+    
+    _lastDeleteItemIndexAsked = index;
+}
 
+- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+    if (buttonIndex == 1) 
+    {
+        [_data removeObjectAtIndex:_lastDeleteItemIndexAsked];
+        [_gmGridView removeObjectAtIndex:_lastDeleteItemIndexAsked withAnimation:GMGridViewItemAnimationFade];
+    }
+}
 
 //////////////////////////////////////////////////////////////
 #pragma mark GMGridViewSortingDelegate
@@ -385,7 +402,7 @@
     NSString *newItem = [NSString stringWithFormat:@"%d", (int)(arc4random() % 1000)];
     
     [_data addObject:newItem];
-    [_gmGridView insertObjectAtIndex:[_data count] - 1];
+    [_gmGridView insertObjectAtIndex:[_data count] - 1 withAnimation:GMGridViewItemAnimationFade | GMGridViewItemAnimationScroll];
 }
 
 - (void)removeItem
@@ -395,7 +412,7 @@
     {
         NSInteger index = [_data count] - 1;
         
-        [_gmGridView removeObjectAtIndex:index];
+        [_gmGridView removeObjectAtIndex:index withAnimation:GMGridViewItemAnimationFade | GMGridViewItemAnimationScroll];
         [_data removeObjectAtIndex:index];
     }
 }
@@ -410,7 +427,7 @@
         NSString *newMessage = [NSString stringWithFormat:@"%d", (arc4random() % 1000)];
         
         [_data replaceObjectAtIndex:index withObject:newMessage];
-        [_gmGridView reloadObjectAtIndex:index];
+        [_gmGridView reloadObjectAtIndex:index withAnimation:GMGridViewItemAnimationFade | GMGridViewItemAnimationScroll];
     }
 }
 
