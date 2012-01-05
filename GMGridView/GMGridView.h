@@ -88,6 +88,8 @@ typedef enum
 @property (nonatomic) BOOL showsHorizontalScrollIndicator;            // Default is YES
 @property (nonatomic, readonly) UIScrollView *scrollView;             // Messing with the scrollView can lead to unexpected behavior. Avoid changing any properties
                                                                       // or changing its delegate. You have been warned.
+@property (nonatomic, strong) UIView *gridHeaderView;                 // Default is nil
+
 
 // Reusable cells
 - (GMGridViewCell *)dequeueReusableCell;                              // Should be called in GMGridView:cellForItemAtIndex: to reuse a cell

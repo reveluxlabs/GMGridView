@@ -105,6 +105,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 // Helpers & more
 - (void)recomputeSizeAnimated:(BOOL)animated;
 - (void)relayoutItemsAnimated:(BOOL)animated;
+- (void)relayoutGridHeaderView:(BOOL)animated;
 - (NSArray *)itemSubviews;
 - (GMGridViewCell *)cellForItemAtIndex:(NSInteger)position;
 - (GMGridViewCell *)newItemSubViewForPosition:(NSInteger)position;
@@ -143,6 +144,8 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 @synthesize showFullSizeViewWithAlphaWhenTransforming;
 @synthesize editing = _editing;
 @synthesize scrollView = _scrollView;
+
+@synthesize gridHeaderView = _gridHeaderView;
 
 @synthesize itemsSubviewsCacheIsValid = _itemsSubviewsCacheIsValid;
 @synthesize itemSubviewsCache;
@@ -233,6 +236,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
         self.showFullSizeViewWithAlphaWhenTransforming = YES;
         self.minEdgeInsets = UIEdgeInsetsMake(5, 5, 5, 5);
         self.clipsToBounds = NO;
+        self.gridHeaderView = nil;
         
         _sortFuturePosition = GMGV_INVALID_POSITION;
         _itemSize = CGSizeZero;
@@ -266,6 +270,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 {
     [self recomputeSizeAnimated:!(animation & GMGridViewItemAnimationNone)];
     [self relayoutItemsAnimated:animation & GMGridViewItemAnimationFade]; // only supported animation for now
+    [self relayoutGridHeaderView:!(animation & GMGridViewItemAnimationNone)];
     [self loadRequiredItems];
 }
 
@@ -413,6 +418,17 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     return _scrollView.showsHorizontalScrollIndicator;
 }
 
+
+- (void)setGridHeaderView:(UIView *)gridHeaderView
+{
+    if (_gridHeaderView == gridHeaderView) return;
+    
+    if (_gridHeaderView) [_gridHeaderView removeFromSuperview];
+    _gridHeaderView = gridHeaderView;
+    if (_gridHeaderView) [self.scrollView addSubview:_gridHeaderView];
+
+    [self setNeedsLayout];
+}
 
 //////////////////////////////////////////////////////////////
 #pragma mark UIScrollView delegate
@@ -1178,7 +1194,12 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 
 - (void)recomputeSizeAnimated:(BOOL)animated
 {
-    [self.layoutStrategy setupItemSize:_itemSize andItemSpacing:self.itemSpacing withMinEdgeInsets:self.minEdgeInsets andCenteredGrid:self.centerGrid];
+    UIEdgeInsets minEdgeInsets = self.minEdgeInsets;
+    if (self.gridHeaderView) {
+        minEdgeInsets.top += self.gridHeaderView.bounds.size.height;
+    }
+        
+    [self.layoutStrategy setupItemSize:_itemSize andItemSpacing:self.itemSpacing withMinEdgeInsets:minEdgeInsets andCenteredGrid:self.centerGrid];
     [self.layoutStrategy rebaseWithItemCount:_numberTotalItems insideOfBounds:self.bounds];
     
     CGSize contentSize = [self.layoutStrategy contentSize];
@@ -1246,6 +1267,25 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     }
 }
 
+- (void)relayoutGridHeaderView:(BOOL)animated;
+{
+    CGRect frame = CGRectMake(0, 0, self.bounds.size.width, self.gridHeaderView.bounds.size.height);
+    if (animated) 
+    {
+        [UIView animateWithDuration:kDefaultAnimationDuration 
+                              delay:0
+                            options:kDefaultAnimationOptions
+                         animations:^{
+                             self.gridHeaderView.frame = frame;
+                         }
+                         completion:nil
+         ];
+    }
+    else 
+    {
+        self.gridHeaderView.frame = frame;
+    }
+}
 
 //////////////////////////////////////////////////////////////
 #pragma mark loading/destroying items & reusing cells
