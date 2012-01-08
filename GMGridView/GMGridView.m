@@ -1213,6 +1213,14 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     
     CGSize contentSize = [self.layoutStrategy contentSize];
     
+    if (self.gridHeaderView) {
+        CGFloat gridViewHeight = self.bounds.size.height;
+        CGFloat headerViewHeight = self.gridHeaderView.bounds.size.height;
+        if (gridViewHeight+headerViewHeight > contentSize.height) {
+            contentSize.height = gridViewHeight+headerViewHeight;
+        }
+    }
+    
     _minPossibleContentOffset = CGPointMake(0, 0);
     _maxPossibleContentOffset = CGPointMake(contentSize.width - _scrollView.bounds.size.width + _scrollView.contentInset.right, 
                                             contentSize.height - _scrollView.bounds.size.height + _scrollView.contentInset.bottom);
