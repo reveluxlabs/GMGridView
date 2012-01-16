@@ -74,6 +74,9 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     CGFloat _lastRotation;
     CGFloat _lastScale;
     BOOL _inFullSizeMode;
+    BOOL _inTransformingState;
+    
+    // Rotation
     BOOL _rotationActive;
 }
 
@@ -82,6 +85,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 @property (atomic) NSInteger firstPositionLoaded;
 @property (atomic) NSInteger lastPositionLoaded;
 
+- (void)commonInit;
 
 // Gestures
 - (void)sortingPanGestureUpdated:(UIPanGestureRecognizer *)panGesture;
@@ -166,95 +170,108 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 {
     if ((self = [super initWithFrame:frame])) 
     {
-        _scrollView = [[UIScrollView alloc] initWithFrame:[self bounds]];
-        _scrollView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-        _scrollView.backgroundColor = [UIColor clearColor];
-        _scrollView.delegate = self;
-        [self addSubview:_scrollView];
-        
-        _tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapGestureUpdated:)];
-        _tapGesture.delegate = self;
-        _tapGesture.numberOfTapsRequired = 1;
-        _tapGesture.numberOfTouchesRequired = 1;
-        [_scrollView addGestureRecognizer:_tapGesture];
-        
-        /////////////////////////////
-        // Transformation gestures :
-        _pinchGesture = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(pinchGestureUpdated:)];
-        _pinchGesture.delegate = self;
-        [self addGestureRecognizer:_pinchGesture];
-        
-        _rotationGesture = [[UIRotationGestureRecognizer alloc] initWithTarget:self action:@selector(rotationGestureUpdated:)];
-        _rotationGesture.delegate = self;
-        [self addGestureRecognizer:_rotationGesture];
-        
-        _panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(panGestureUpdated:)];
-        _panGesture.delegate = self;
-        [_panGesture setMaximumNumberOfTouches:2];
-        [_panGesture setMinimumNumberOfTouches:2];
-        [self addGestureRecognizer:_panGesture];
-        
-        //////////////////////
-        // Sorting gestures :
-        
-        _sortingPanGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(sortingPanGestureUpdated:)];
-        _sortingPanGesture.delegate = self;
-        [_scrollView addGestureRecognizer:_sortingPanGesture];
-        
-        _sortingLongPressGesture = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(sortingLongPressGestureUpdated:)];
-        _sortingLongPressGesture.numberOfTouchesRequired = 1;
-        _sortingLongPressGesture.delegate = self;
-        [_scrollView addGestureRecognizer:_sortingLongPressGesture];
-        
-        ////////////////////////
-        // Gesture dependencies
-        UIPanGestureRecognizer *panGestureRecognizer = nil;
-        if ([_scrollView respondsToSelector:@selector(panGestureRecognizer)]) // iOS5 only
-        { 
-            panGestureRecognizer = _scrollView.panGestureRecognizer;
-        }
-        else 
-        {
-            for (UIGestureRecognizer *gestureRecognizer in _scrollView.gestureRecognizers) 
-            { 
-                if ([gestureRecognizer  isKindOfClass:NSClassFromString(@"UIScrollViewPanGestureRecognizer")]) 
-                {
-                    panGestureRecognizer = (UIPanGestureRecognizer *) gestureRecognizer;
-                }
-            }
-        }
-        [panGestureRecognizer setMaximumNumberOfTouches:1];
-        [panGestureRecognizer requireGestureRecognizerToFail:_sortingPanGesture];
-        
-        self.layoutStrategy = [GMGridViewLayoutStrategyFactory strategyFromType:GMGridViewLayoutVertical];
-        
-        self.mainSuperView = self;
-        self.editing = NO;
-        self.itemSpacing = 10;
-        self.style = GMGridViewStyleSwap;
-        self.minimumPressDuration = 0.2;
-        self.showFullSizeViewWithAlphaWhenTransforming = YES;
-        self.minEdgeInsets = UIEdgeInsetsMake(5, 5, 5, 5);
-        self.clipsToBounds = NO;
-        self.gridHeaderView = nil;
-        
-        _sortFuturePosition = GMGV_INVALID_POSITION;
-        _itemSize = CGSizeZero;
-        
-        _lastScale = 1.0;
-        _lastRotation = 0.0;
-        
-        _minPossibleContentOffset = CGPointMake(0, 0);
-        _maxPossibleContentOffset = CGPointMake(0, 0);
-        
-        _reusableCells = [[NSMutableSet alloc] init];
-        
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(receivedMemoryWarningNotification:) name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(willRotate:) name:UIApplicationWillChangeStatusBarOrientationNotification object:nil];
+        [self commonInit];
     }
     return self;
 }
 
+- (id)initWithCoder:(NSCoder *)aDecoder
+{
+    if ((self = [super initWithCoder:aDecoder])) 
+    {
+        [self commonInit];
+    }
+    
+    return self;
+}
+
+- (void)commonInit
+{
+    _scrollView = [[UIScrollView alloc] initWithFrame:[self bounds]];
+    _scrollView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    _scrollView.backgroundColor = [UIColor clearColor];
+    _scrollView.delegate = self;
+    [self addSubview:_scrollView];
+    
+    _tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapGestureUpdated:)];
+    _tapGesture.delegate = self;
+    _tapGesture.numberOfTapsRequired = 1;
+    _tapGesture.numberOfTouchesRequired = 1;
+    [_scrollView addGestureRecognizer:_tapGesture];
+    
+    /////////////////////////////
+    // Transformation gestures :
+    _pinchGesture = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(pinchGestureUpdated:)];
+    _pinchGesture.delegate = self;
+    [self addGestureRecognizer:_pinchGesture];
+    
+    _rotationGesture = [[UIRotationGestureRecognizer alloc] initWithTarget:self action:@selector(rotationGestureUpdated:)];
+    _rotationGesture.delegate = self;
+    [self addGestureRecognizer:_rotationGesture];
+    
+    _panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(panGestureUpdated:)];
+    _panGesture.delegate = self;
+    [_panGesture setMaximumNumberOfTouches:2];
+    [_panGesture setMinimumNumberOfTouches:2];
+    [self addGestureRecognizer:_panGesture];
+    
+    //////////////////////
+    // Sorting gestures :
+    
+    _sortingPanGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(sortingPanGestureUpdated:)];
+    _sortingPanGesture.delegate = self;
+    [_scrollView addGestureRecognizer:_sortingPanGesture];
+    
+    _sortingLongPressGesture = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(sortingLongPressGestureUpdated:)];
+    _sortingLongPressGesture.numberOfTouchesRequired = 1;
+    _sortingLongPressGesture.delegate = self;
+    [_scrollView addGestureRecognizer:_sortingLongPressGesture];
+    
+    ////////////////////////
+    // Gesture dependencies
+    UIPanGestureRecognizer *panGestureRecognizer = nil;
+    if ([_scrollView respondsToSelector:@selector(panGestureRecognizer)]) // iOS5 only
+    { 
+        panGestureRecognizer = _scrollView.panGestureRecognizer;
+    }
+    else 
+    {
+        for (UIGestureRecognizer *gestureRecognizer in _scrollView.gestureRecognizers) 
+        { 
+            if ([gestureRecognizer  isKindOfClass:NSClassFromString(@"UIScrollViewPanGestureRecognizer")]) 
+            {
+                panGestureRecognizer = (UIPanGestureRecognizer *) gestureRecognizer;
+            }
+        }
+    }
+    [panGestureRecognizer setMaximumNumberOfTouches:1];
+    [panGestureRecognizer requireGestureRecognizerToFail:_sortingPanGesture];
+    
+    self.layoutStrategy = [GMGridViewLayoutStrategyFactory strategyFromType:GMGridViewLayoutVertical];
+    
+    self.mainSuperView = self;
+    self.editing = NO;
+    self.itemSpacing = 10;
+    self.style = GMGridViewStyleSwap;
+    self.minimumPressDuration = 0.2;
+    self.showFullSizeViewWithAlphaWhenTransforming = YES;
+    self.minEdgeInsets = UIEdgeInsetsMake(5, 5, 5, 5);
+    self.clipsToBounds = NO;
+    
+    _sortFuturePosition = GMGV_INVALID_POSITION;
+    _itemSize = CGSizeZero;
+    
+    _lastScale = 1.0;
+    _lastRotation = 0.0;
+    
+    _minPossibleContentOffset = CGPointMake(0, 0);
+    _maxPossibleContentOffset = CGPointMake(0, 0);
+    
+    _reusableCells = [[NSMutableSet alloc] init];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(receivedMemoryWarningNotification:) name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(willRotate:) name:UIApplicationWillChangeStatusBarOrientationNotification object:nil];
+}
 
 - (void)dealloc
 {
@@ -265,6 +282,13 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 //////////////////////////////////////////////////////////////
 #pragma mark Layout
 //////////////////////////////////////////////////////////////
+
+- (void)applyWithoutAnimation:(void (^)(void))animations {
+    [CATransaction begin];
+    [CATransaction setValue:(id)kCFBooleanTrue forKey:kCATransactionDisableActions];
+    animations();
+    [CATransaction commit];
+}
 
 - (void)layoutSubviewsWithAnimation:(GMGridViewItemAnimation)animation
 {
@@ -280,21 +304,53 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     
     if (_rotationActive) 
     {
+        _rotationActive = NO;
+        
+        // Updating all the items size
+        
+        CGSize itemSize = [self.dataSource GMGridView:self sizeForItemsInInterfaceOrientation:[[UIApplication sharedApplication] statusBarOrientation]];
+        
+        if (!CGSizeEqualToSize(_itemSize, itemSize)) 
+        {
+            _itemSize = itemSize;
+            
+            [[self itemSubviews] enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+                
+                if (obj != _transformingItem) 
+                {
+                    GMGridViewCell *cell = (GMGridViewCell *)obj;
+                    cell.bounds = CGRectMake(0, 0, _itemSize.width, _itemSize.height);
+                    cell.contentView.frame = cell.bounds;
+                }
+            }];
+        }
+        
+        // Updating the fullview size
+        
+        if (_transformingItem && _inFullSizeMode) 
+        {
+            NSInteger position = _transformingItem.tag - kTagOffset;
+            CGSize fullSize = [self.transformDelegate GMGridView:self sizeInFullSizeForCell:_transformingItem atIndex:position inInterfaceOrientation:[[UIApplication sharedApplication] statusBarOrientation]];
+            
+            if (!CGSizeEqualToSize(fullSize, _transformingItem.fullSize)) 
+            {
+                CGPoint center = _transformingItem.fullSizeView.center;
+                _transformingItem.fullSize = fullSize;
+                _transformingItem.fullSizeView.center = center;
+            }
+        }
+        
+        // Adding alpha animation to make the relayouting more smooth
+        
         CATransition *transition = [CATransition animation];
         transition.duration = 0.25f;
         transition.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
         transition.type = kCATransitionFade;
         [_scrollView.layer addAnimation:transition forKey:@"rotationAnimation"];
-        _rotationActive = NO;
         
-        [UIView animateWithDuration:0 
-                              delay:0
-                            options:UIViewAnimationOptionOverrideInheritedDuration
-                         animations:^{
-                             [self layoutSubviewsWithAnimation:GMGridViewItemAnimationNone];
-                         }
-                         completion:nil
-         ];
+        [self applyWithoutAnimation:^{
+            [self layoutSubviewsWithAnimation:GMGridViewItemAnimationNone];
+        }];
     }
     else 
     {
@@ -946,14 +1002,16 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 
 - (void)transformingGestureDidBeginWithGesture:(UIGestureRecognizer *)gesture
 {
-    if (_inFullSizeMode && [gesture isKindOfClass:[UIPinchGestureRecognizer class]]) 
+    _inFullSizeMode = NO;
+    
+    if (_inTransformingState && [gesture isKindOfClass:[UIPinchGestureRecognizer class]]) 
     {
         _pinchGesture.scale = 2.5;
     }
     
-    if (_inFullSizeMode)
+    if (_inTransformingState)
     {        
-        _inFullSizeMode = NO;
+        _inTransformingState = NO;
         
         CGPoint center = _transformingItem.fullSizeView.center;
         
@@ -977,7 +1035,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
         [self.mainSuperView addSubview:_transformingItem];
         [self.mainSuperView bringSubviewToFront:_transformingItem];
         
-        _transformingItem.fullSize = [self.transformDelegate GMGridView:self sizeInFullSizeForCell:_transformingItem atIndex:positionTouch];
+        _transformingItem.fullSize = [self.transformDelegate GMGridView:self sizeInFullSizeForCell:_transformingItem atIndex:positionTouch inInterfaceOrientation:[[UIApplication sharedApplication] statusBarOrientation]];
         _transformingItem.fullSizeView = [self.transformDelegate GMGridView:self fullSizeViewForCell:_transformingItem atIndex:positionTouch];
         
         if ([self.transformDelegate respondsToSelector:@selector(GMGridView:didStartTransformingCell:)]) 
@@ -996,7 +1054,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 {
     if ([self isInTransformingState]) 
     {
-        if (_lastScale > 2 && !_inFullSizeMode) 
+        if (_lastScale > 2 && !_inTransformingState) 
         {            
             _lastRotation = 0;
             _lastScale = 1;
@@ -1021,6 +1079,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
                              completion:nil
              ];
             
+            _inTransformingState = YES;
             _inFullSizeMode = YES;
             
             if ([self.transformDelegate respondsToSelector:@selector(GMGridView:didEnterFullSizeForCell:)])
@@ -1033,7 +1092,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
             [_transformingItem.fullSizeView addGestureRecognizer:_rotationGesture];
             [_transformingItem.fullSizeView addGestureRecognizer:_panGesture];
         }
-        else if (!_inFullSizeMode)
+        else if (!_inTransformingState)
         {
             _lastRotation = 0;
             _lastScale = 1.0;
@@ -1066,6 +1125,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
                                  [_scrollView addSubview:transformingView];
                                  
                                  transformingView.fullSizeView = nil;
+                                 _inFullSizeMode = NO;
                                  
                                  if ([self.transformDelegate respondsToSelector:@selector(GMGridView:didEndTransformingCell:)])
                                  {
@@ -1113,15 +1173,11 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     CGRect frame = CGRectMake(origin.x, origin.y, _itemSize.width, _itemSize.height);
     
     // To make sure the frame is not animated
-    [UIView animateWithDuration:0 
-                          delay:0 
-                        options:kDefaultAnimationOptions | UIViewAnimationOptionOverrideInheritedDuration 
-                     animations:^{
-                         cell.frame = frame;
-                         cell.contentView.frame = cell.bounds;
-                     } 
-                     completion:nil];
-    
+    [self applyWithoutAnimation:^{
+        cell.frame = frame;
+        cell.contentView.frame = cell.bounds;
+    }];
+
     cell.tag = position + kTagOffset;
     BOOL canEdit = self.editing && [self.dataSource GMGridView:self canDeleteItemAtIndex:position];
     [cell setEditing:canEdit animated:NO];
@@ -1424,7 +1480,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     [self setSubviewsCacheAsInvalid];
     
     NSUInteger numberItems = [self.dataSource numberOfItemsInGMGridView:self];    
-    _itemSize = [self.dataSource sizeForItemsInGMGridView:self];
+    _itemSize = [self.dataSource GMGridView:self sizeForItemsInInterfaceOrientation:[[UIApplication sharedApplication] statusBarOrientation]];
     _numberTotalItems = numberItems;
     
     [self recomputeSizeAnimated:NO];

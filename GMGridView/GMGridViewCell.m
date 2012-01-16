@@ -118,6 +118,11 @@
     {
         contentView.frame = self.contentView.frame;
     }
+    else
+    {
+        contentView.frame = self.bounds;
+    }
+    
     _contentView = contentView;
     
     self.contentView.autoresizingMask = UIViewAutoresizingNone;
