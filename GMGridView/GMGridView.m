@@ -32,7 +32,7 @@
 #import "GMGridViewLayoutStrategies.h"
 #import "UIGestureRecognizer+GMGridViewAdditions.h"
 
-static const NSUInteger kTagOffset = 50;
+static const NSInteger kTagOffset = 50;
 static const CGFloat kDefaultAnimationDuration = 0.3;
 static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOptionBeginFromCurrentState | UIViewAnimationOptionAllowUserInteraction;
 
@@ -43,9 +43,6 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 
 @interface GMGridView () <UIGestureRecognizerDelegate, UIScrollViewDelegate>
 {
-    // Views
-    UIScrollView *_scrollView;
-    
     // Sorting Gestures
     UIPanGestureRecognizer       *_sortingPanGesture;
     UILongPressGestureRecognizer *_sortingLongPressGesture;
@@ -147,7 +144,6 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 @synthesize minEdgeInsets = _minEdgeInsets;
 @synthesize showFullSizeViewWithAlphaWhenTransforming;
 @synthesize editing = _editing;
-@synthesize scrollView = _scrollView;
 
 @synthesize gridHeaderView = _gridHeaderView;
 
@@ -187,17 +183,11 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 
 - (void)commonInit
 {
-    _scrollView = [[UIScrollView alloc] initWithFrame:[self bounds]];
-    _scrollView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    _scrollView.backgroundColor = [UIColor clearColor];
-    _scrollView.delegate = self;
-    [self addSubview:_scrollView];
-    
     _tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapGestureUpdated:)];
     _tapGesture.delegate = self;
     _tapGesture.numberOfTapsRequired = 1;
     _tapGesture.numberOfTouchesRequired = 1;
-    [_scrollView addGestureRecognizer:_tapGesture];
+    [self addGestureRecognizer:_tapGesture];
     
     /////////////////////////////
     // Transformation gestures :
@@ -220,23 +210,23 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     
     _sortingPanGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(sortingPanGestureUpdated:)];
     _sortingPanGesture.delegate = self;
-    [_scrollView addGestureRecognizer:_sortingPanGesture];
+    [self addGestureRecognizer:_sortingPanGesture];
     
     _sortingLongPressGesture = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(sortingLongPressGestureUpdated:)];
     _sortingLongPressGesture.numberOfTouchesRequired = 1;
     _sortingLongPressGesture.delegate = self;
-    [_scrollView addGestureRecognizer:_sortingLongPressGesture];
+    [self addGestureRecognizer:_sortingLongPressGesture];
     
     ////////////////////////
     // Gesture dependencies
     UIPanGestureRecognizer *panGestureRecognizer = nil;
-    if ([_scrollView respondsToSelector:@selector(panGestureRecognizer)]) // iOS5 only
+    if ([self respondsToSelector:@selector(panGestureRecognizer)]) // iOS5 only
     { 
-        panGestureRecognizer = _scrollView.panGestureRecognizer;
+        panGestureRecognizer = self.panGestureRecognizer;
     }
     else 
     {
-        for (UIGestureRecognizer *gestureRecognizer in _scrollView.gestureRecognizers) 
+        for (UIGestureRecognizer *gestureRecognizer in self.gestureRecognizers) 
         { 
             if ([gestureRecognizer  isKindOfClass:NSClassFromString(@"UIScrollViewPanGestureRecognizer")]) 
             {
@@ -260,6 +250,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     
     _sortFuturePosition = GMGV_INVALID_POSITION;
     _itemSize = CGSizeZero;
+    _centerGrid = YES;
     
     _lastScale = 1.0;
     _lastRotation = 0.0;
@@ -283,11 +274,15 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 #pragma mark Layout
 //////////////////////////////////////////////////////////////
 
-- (void)applyWithoutAnimation:(void (^)(void))animations {
-    [CATransaction begin];
-    [CATransaction setValue:(id)kCFBooleanTrue forKey:kCATransactionDisableActions];
-    animations();
-    [CATransaction commit];
+- (void)applyWithoutAnimation:(void (^)(void))animations 
+{
+    if (animations) 
+    {
+        [CATransaction begin];
+        [CATransaction setValue:(id)kCFBooleanTrue forKey:kCATransactionDisableActions];
+        animations();
+        [CATransaction commit];
+    }
 }
 
 - (void)layoutSubviewsWithAnimation:(GMGridViewItemAnimation)animation
@@ -346,7 +341,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
         transition.duration = 0.25f;
         transition.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
         transition.type = kCATransitionFade;
-        [_scrollView.layer addAnimation:transition forKey:@"rotationAnimation"];
+        [self.layer addAnimation:transition forKey:@"rotationAnimation"];
         
         [self applyWithoutAnimation:^{
             [self layoutSubviewsWithAnimation:GMGridViewItemAnimationNone];
@@ -394,7 +389,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     if (_layoutStrategy == layoutStrategy) return;
     _layoutStrategy = layoutStrategy;
     
-    _scrollView.pagingEnabled = [[self.layoutStrategy class] requiresEnablingPaging];
+    self.pagingEnabled = [[self.layoutStrategy class] requiresEnablingPaging];
     [self setNeedsLayout];
 }
 
@@ -442,7 +437,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     {
         for (GMGridViewCell *cell in [self itemSubviews]) 
         {
-            NSUInteger index = [self positionForItemSubview:cell];
+            NSInteger index = [self positionForItemSubview:cell];
             if (index != GMGV_INVALID_POSITION)
             {
                 BOOL allowEdit = editing && [self.dataSource GMGridView:self canDeleteItemAtIndex:index];
@@ -454,25 +449,22 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     }
 }
 
-- (void)setShowsVerticalScrollIndicator:(BOOL)showsVerticalScroll 
+//////////////////////////////////////////////////////////////
+#pragma mark UIScrollView delegate replacement
+//////////////////////////////////////////////////////////////
+
+- (void)contentOffset:(CGPoint)contentOffset
 {
-    _scrollView.showsVerticalScrollIndicator = showsVerticalScroll;
+    BOOL valueChanged = !CGPointEqualToPoint(contentOffset, self.contentOffset);
+    
+    [super setContentOffset:contentOffset];
+
+    if (valueChanged) 
+    {
+        [self loadRequiredItems];
+    }
 }
 
-- (BOOL)showsVerticalScrollIndicator 
-{
-    return _scrollView.showsVerticalScrollIndicator;
-}
-
-- (void)setShowsHorizontalScrollIndicator:(BOOL)showsHorizontalScrollIndicator 
-{
-    _scrollView.showsHorizontalScrollIndicator = showsHorizontalScrollIndicator;
-}
-
-- (BOOL)showsHorizontalScrollIndicator 
-{
-    return _scrollView.showsHorizontalScrollIndicator;
-}
 
 
 - (void)setGridHeaderView:(UIView *)gridHeaderView
@@ -487,15 +479,6 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 }
 
 //////////////////////////////////////////////////////////////
-#pragma mark UIScrollView delegate
-//////////////////////////////////////////////////////////////
-
-- (void)scrollViewDidScroll:(UIScrollView *)scrollView
-{
-    [self loadRequiredItems];
-}
-
-//////////////////////////////////////////////////////////////
 #pragma mark GestureRecognizer delegate
 //////////////////////////////////////////////////////////////
 
@@ -507,11 +490,11 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 - (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer
 {    
     BOOL valid = YES;
-    BOOL isScrolling = _scrollView.isDragging || _scrollView.isDecelerating;
+    BOOL isScrolling = self.isDragging || self.isDecelerating;
     
     if (gestureRecognizer == _tapGesture) 
     {
-        CGPoint locationTouch = [_tapGesture locationInView:_scrollView];
+        CGPoint locationTouch = [_tapGesture locationInView:self];
         valid = !isScrolling && !self.isEditing && [self.layoutStrategy itemPositionFromLocation:locationTouch] != GMGV_INVALID_POSITION;
     }
     else if (gestureRecognizer == _sortingLongPressGesture)
@@ -526,8 +509,8 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     {
         if (self.transformDelegate != nil && [gestureRecognizer numberOfTouches] == 2) 
         {
-            CGPoint locationTouch1 = [gestureRecognizer locationOfTouch:0 inView:_scrollView];
-            CGPoint locationTouch2 = [gestureRecognizer locationOfTouch:1 inView:_scrollView];
+            CGPoint locationTouch1 = [gestureRecognizer locationOfTouch:0 inView:self];
+            CGPoint locationTouch2 = [gestureRecognizer locationOfTouch:1 inView:self];
             
             NSInteger positionTouch1 = [self.layoutStrategy itemPositionFromLocation:locationTouch1];
             NSInteger positionTouch2 = [self.layoutStrategy itemPositionFromLocation:locationTouch2];
@@ -555,7 +538,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
         {
             if (!_sortMovingItem) 
             { 
-                CGPoint location = [longPressGesture locationInView:_scrollView];
+                CGPoint location = [longPressGesture locationInView:self];
                 
                 NSInteger position = [self.layoutStrategy itemPositionFromLocation:location];
                 
@@ -575,7 +558,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
             
             if (_sortMovingItem) 
             {                
-                CGPoint location = [longPressGesture locationInView:_scrollView];
+                CGPoint location = [longPressGesture locationInView:self];
                 [self sortingMoveDidStopAtPoint:location];
             }
             
@@ -606,9 +589,9 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
         }
         case UIGestureRecognizerStateChanged:
         {
-            CGPoint translation = [panGesture translationInView:_scrollView];
+            CGPoint translation = [panGesture translationInView:self];
             CGPoint offset = translation;
-            CGPoint locationInScroll = [panGesture locationInView:_scrollView];
+            CGPoint locationInScroll = [panGesture locationInView:self];
             
             _sortMovingItem.transform = CGAffineTransformMakeTranslation(offset.x, offset.y);
             [self sortingMoveDidContinueToPoint:locationInScroll];
@@ -625,10 +608,14 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     if (_sortMovingItem && _autoScrollActive) 
     {
         CGPoint locationInMainView = [_sortingPanGesture locationInView:self];
-        CGPoint locationInScroll   = [_sortingPanGesture locationInView:_scrollView];
+        locationInMainView = CGPointMake(locationInMainView.x - self.contentOffset.x,
+                                         locationInMainView.y -self.contentOffset.y
+        );
+        
         
         CGFloat threshhold = _itemSize.height;
-        CGPoint offset = _scrollView.contentOffset;
+        CGPoint offset = self.contentOffset;
+        CGPoint locationInScroll = [_sortingPanGesture locationInView:self];
         
         // Going down
         if (locationInMainView.x + threshhold > self.bounds.size.width) 
@@ -672,17 +659,17 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
             }
         }
         
-        if (offset.x != _scrollView.contentOffset.x || offset.y != _scrollView.contentOffset.y) 
+        if (offset.x != self.contentOffset.x || offset.y != self.contentOffset.y) 
         {
             [UIView animateWithDuration:kDefaultAnimationDuration 
                                   delay:0
                                 options:kDefaultAnimationOptions
                              animations:^{
-                                 _scrollView.contentOffset = offset;
+                                 self.contentOffset = offset;
                              }
                              completion:^(BOOL finished){
                                  
-                                 _scrollView.contentOffset = offset;
+                                 self.contentOffset = offset;
                                  
                                  if (_autoScrollActive) 
                                  {
@@ -706,10 +693,10 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     
     GMGridViewCell *item = [self cellForItemAtIndex:position];
     
-    [_scrollView bringSubviewToFront:item];
+    [self bringSubviewToFront:item];
     _sortMovingItem = item;
     
-    CGRect frameInMainView = [_scrollView convertRect:_sortMovingItem.frame toView:self.mainSuperView];
+    CGRect frameInMainView = [self convertRect:_sortMovingItem.frame toView:self.mainSuperView];
     
     [_sortMovingItem removeFromSuperview];
     _sortMovingItem.frame = frameInMainView;
@@ -739,11 +726,11 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     
     _sortMovingItem.tag = _sortFuturePosition + kTagOffset;
     
-    CGRect frameInScroll = [self.mainSuperView convertRect:_sortMovingItem.frame toView:_scrollView];
+    CGRect frameInScroll = [self.mainSuperView convertRect:_sortMovingItem.frame toView:self];
     
     [_sortMovingItem removeFromSuperview];
     _sortMovingItem.frame = frameInScroll;
-    [_scrollView addSubview:_sortMovingItem];
+    [self addSubview:_sortMovingItem];
     
     CGPoint newOrigin = [self.layoutStrategy originForItemAtPosition:_sortFuturePosition];
     CGRect newFrame = CGRectMake(newOrigin.x, newOrigin.y, _itemSize.width, _itemSize.height);
@@ -800,7 +787,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
                             if ((v.tag == tag || (v.tag < tag && v.tag >= _sortFuturePosition + kTagOffset)) && v != _sortMovingItem ) 
                             {
                                 v.tag = v.tag - 1;
-                                [_scrollView sendSubviewToBack:v];
+                                [self sendSubviewToBack:v];
                             }
                         }
                     }
@@ -811,7 +798,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
                             if ((v.tag == tag || (v.tag > tag && v.tag <= _sortFuturePosition + kTagOffset)) && v != _sortMovingItem) 
                             {
                                 v.tag = v.tag + 1;
-                                [_scrollView sendSubviewToBack:v];
+                                [self sendSubviewToBack:v];
                             }
                         }
                     }
@@ -867,14 +854,14 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
             [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(transformingGestureDidFinish) object:nil];
             [self performSelector:@selector(transformingGestureDidFinish) withObject:nil afterDelay:0.1];
             
-            _scrollView.scrollEnabled = YES;
+            self.scrollEnabled = YES;
             
             break;
         }
         case UIGestureRecognizerStateBegan:
         {
             [self transformingGestureDidBeginWithGesture:panGesture];
-            _scrollView.scrollEnabled = NO;
+            self.scrollEnabled = NO;
             
             break;
         }
@@ -885,9 +872,9 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
                 [panGesture end];
             }
             
-            CGPoint translate = [panGesture translationInView:_scrollView];
+            CGPoint translate = [panGesture translationInView:self];
             [_transformingItem.contentView setCenter:CGPointMake(_transformingItem.contentView.center.x + translate.x, _transformingItem.contentView.center.y + translate.y)];
-            [panGesture setTranslation:CGPointZero inView:_scrollView];
+            [panGesture setTranslation:CGPointZero inView:self];
             
             break;
         }
@@ -1013,11 +1000,11 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     }
     else if (!_transformingItem) 
     {        
-        CGPoint locationTouch = [gesture locationOfTouch:0 inView:_scrollView];            
+        CGPoint locationTouch = [gesture locationOfTouch:0 inView:self];            
         NSInteger positionTouch = [self.layoutStrategy itemPositionFromLocation:locationTouch];
         _transformingItem = [self cellForItemAtIndex:positionTouch];
         
-        CGRect frameInMainView = [_scrollView convertRect:_transformingItem.frame toView:self.mainSuperView];
+        CGRect frameInMainView = [self convertRect:_transformingItem.frame toView:self.mainSuperView];
         
         [_transformingItem removeFromSuperview];
         _transformingItem.frame = self.mainSuperView.bounds;
@@ -1095,7 +1082,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
             CGPoint origin = [self.layoutStrategy originForItemAtPosition:position];
             
             CGRect finalFrameInScroll = CGRectMake(origin.x, origin.y, _itemSize.width, _itemSize.height);
-            CGRect finalFrameInSuperview = [_scrollView convertRect:finalFrameInScroll toView:self.mainSuperView];
+            CGRect finalFrameInSuperview = [self convertRect:finalFrameInScroll toView:self.mainSuperView];
             
             [transformingView switchToFullSizeMode:NO];
             transformingView.autoresizingMask = UIViewAutoresizingNone;
@@ -1113,7 +1100,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
                                  [transformingView removeFromSuperview];
                                  transformingView.frame = finalFrameInScroll;
                                  transformingView.contentView.frame = transformingView.bounds;
-                                 [_scrollView addSubview:transformingView];
+                                 [self addSubview:transformingView];
                                  
                                  transformingView.fullSizeView = nil;
                                  _inFullSizeMode = NO;
@@ -1139,7 +1126,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 
 - (void)tapGestureUpdated:(UITapGestureRecognizer *)tapGesture
 {
-    CGPoint locationTouch = [_tapGesture locationInView:_scrollView];
+    CGPoint locationTouch = [_tapGesture locationInView:self];
     NSInteger position = [self.layoutStrategy itemPositionFromLocation:locationTouch];
     
     if (position != GMGV_INVALID_POSITION) 
@@ -1182,7 +1169,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
             BOOL canDelete = YES;
             if ([weakSelf.dataSource respondsToSelector:@selector(GMGridView:canDeleteItemAtIndex:)]) 
             {
-                canDelete = [weakSelf.dataSource GMGridView:self canDeleteItemAtIndex:index];
+                canDelete = [weakSelf.dataSource GMGridView:weakSelf canDeleteItemAtIndex:index];
             }
             
             if (canDelete && [weakSelf.actionDelegate respondsToSelector:@selector(GMGridView:processDeleteActionForItemAtIndex:)]) 
@@ -1205,11 +1192,11 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     }
     else
     {
-        @synchronized(_scrollView)
+        @synchronized(self)
         {
             NSMutableArray *itemSubViews = [[NSMutableArray alloc] initWithCapacity:_numberTotalItems];
             
-            for (UIView * v in [_scrollView subviews]) 
+            for (UIView * v in [self subviews]) 
             {
                 if ([v isKindOfClass:[GMGridViewCell class]]) 
                 {
@@ -1269,10 +1256,10 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     }
     
     _minPossibleContentOffset = CGPointMake(0, 0);
-    _maxPossibleContentOffset = CGPointMake(contentSize.width - _scrollView.bounds.size.width + _scrollView.contentInset.right, 
-                                            contentSize.height - _scrollView.bounds.size.height + _scrollView.contentInset.bottom);
+    _maxPossibleContentOffset = CGPointMake(contentSize.width - self.bounds.size.width + self.contentInset.right, 
+                                            contentSize.height - self.bounds.size.height + self.contentInset.bottom);
     
-    BOOL shouldUpdateScrollviewContentSize = !CGSizeEqualToSize(_scrollView.contentSize, contentSize);
+    BOOL shouldUpdateScrollviewContentSize = !CGSizeEqualToSize(self.contentSize, contentSize);
     
     if (shouldUpdateScrollviewContentSize)
     {
@@ -1282,13 +1269,13 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
                                   delay:0 
                                 options:kDefaultAnimationOptions 
                              animations:^{
-                                 _scrollView.contentSize = contentSize;
+                                 self.contentSize = contentSize;
                              }
                              completion:nil];
         }
         else
         {
-            _scrollView.contentSize = contentSize;
+            self.contentSize = contentSize;
         }
     }
     
@@ -1357,12 +1344,12 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 
 - (void)loadRequiredItems
 {
-    NSRange rangeOfPositions = [self.layoutStrategy rangeOfPositionsInBoundsFromOffset: _scrollView.contentOffset];
+    NSRange rangeOfPositions = [self.layoutStrategy rangeOfPositionsInBoundsFromOffset: self.contentOffset];
     NSRange loadedPositionsRange = NSMakeRange(self.firstPositionLoaded, self.lastPositionLoaded - self.firstPositionLoaded);
     
     // calculate new position range
-    self.firstPositionLoaded = self.firstPositionLoaded == GMGV_INVALID_POSITION ? rangeOfPositions.location : MIN(self.firstPositionLoaded, rangeOfPositions.location);
-    self.lastPositionLoaded  = self.lastPositionLoaded == GMGV_INVALID_POSITION ? NSMaxRange(rangeOfPositions) : MAX(self.lastPositionLoaded, rangeOfPositions.length + rangeOfPositions.location);
+    self.firstPositionLoaded = self.firstPositionLoaded == GMGV_INVALID_POSITION ? rangeOfPositions.location : MIN(self.firstPositionLoaded, (NSInteger)rangeOfPositions.location);
+    self.lastPositionLoaded  = self.lastPositionLoaded == GMGV_INVALID_POSITION ? NSMaxRange(rangeOfPositions) : MAX(self.lastPositionLoaded, (NSInteger)(rangeOfPositions.length + rangeOfPositions.location));
     
     // remove now invisible items
     [self setSubviewsCacheAsInvalid];
@@ -1371,7 +1358,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     // add new cells
     BOOL forceLoad = self.firstPositionLoaded == GMGV_INVALID_POSITION || self.lastPositionLoaded == GMGV_INVALID_POSITION;
     NSInteger positionToLoad;
-    for (int i = 0; i < rangeOfPositions.length; i++) 
+    for (NSUInteger i = 0; i < rangeOfPositions.length; i++) 
     {
         positionToLoad = i + rangeOfPositions.location;
         
@@ -1380,7 +1367,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
             if (![self cellForItemAtIndex:positionToLoad]) 
             {
                 GMGridViewCell *cell = [self newItemSubViewForPosition:positionToLoad];
-                [_scrollView addSubview:cell];
+                [self addSubview:cell];
             }
         }
     }    
@@ -1389,17 +1376,16 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 
 - (void)cleanupUnseenItems
 {
-    NSRange rangeOfPositions = [self.layoutStrategy rangeOfPositionsInBoundsFromOffset: _scrollView.contentOffset];
+    NSRange rangeOfPositions = [self.layoutStrategy rangeOfPositionsInBoundsFromOffset: self.contentOffset];
     GMGridViewCell *cell;
     
-    if (rangeOfPositions.location > self.firstPositionLoaded) 
+    if ((NSInteger)rangeOfPositions.location > self.firstPositionLoaded) 
     {
-        for (int i = self.firstPositionLoaded; i < rangeOfPositions.location; i++) 
+        for (NSInteger i = self.firstPositionLoaded; i < (NSInteger)rangeOfPositions.location; i++) 
         {
             cell = [self cellForItemAtIndex:i];
             if(cell)
             {
-                //NSLog(@"Removing item at position %d", i);
                 [self queueReusableCell:cell];
                 [cell removeFromSuperview];
             }
@@ -1409,14 +1395,13 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
         [self setSubviewsCacheAsInvalid];
     }
     
-    if (NSMaxRange(rangeOfPositions) < self.lastPositionLoaded) 
+    if ((NSInteger)NSMaxRange(rangeOfPositions) < self.lastPositionLoaded) 
     {
-        for (int i = NSMaxRange(rangeOfPositions); i <= self.lastPositionLoaded; i++)
+        for (NSInteger i = NSMaxRange(rangeOfPositions); i <= self.lastPositionLoaded; i++)
         {
             cell = [self cellForItemAtIndex:i];
             if(cell)
             {
-                //NSLog(@"Removing item at position %d", i);
                 [self queueReusableCell:cell];
                 [cell removeFromSuperview];
             }
@@ -1450,17 +1435,40 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     return cell;
 }
 
+- (GMGridViewCell *)dequeueReusableCellWithIdentifier:(NSString *)identifier
+{
+    GMGridViewCell *cell = nil;
+    
+    for (GMGridViewCell *reusableCell in [_reusableCells allObjects]) 
+    {
+        if ([reusableCell.reuseIdentifier isEqualToString:identifier]) 
+        {
+            cell = reusableCell;
+            break;
+        }
+    }
+    
+    if (cell) 
+    {
+        [_reusableCells removeObject:cell];
+    }
+    
+    return cell;
+}
+
 //////////////////////////////////////////////////////////////
 #pragma mark public methods
 //////////////////////////////////////////////////////////////
 
 - (void)reloadData
 {
-    CGPoint previousContentOffset = _scrollView.contentOffset;
+    CGPoint previousContentOffset = self.contentOffset;
     
-    [[self itemSubviews] enumerateObjectsUsingBlock:^(id obj, NSUInteger index, BOOL *stop){
-        [(UIView *)obj removeFromSuperview];
-        if ([obj isKindOfClass:[GMGridViewCell class]]) {
+    [[self itemSubviews] enumerateObjectsUsingBlock:^(id obj, NSUInteger index, BOOL *stop)
+    {
+        if ([obj isKindOfClass:[GMGridViewCell class]]) 
+        {
+            [(UIView *)obj removeFromSuperview];
             [self queueReusableCell:(GMGridViewCell *)obj];
         }
     }];
@@ -1479,7 +1487,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     CGPoint newContentOffset = CGPointMake(MIN(_maxPossibleContentOffset.x, previousContentOffset.x), MIN(_maxPossibleContentOffset.y, previousContentOffset.y));
     newContentOffset = CGPointMake(MAX(newContentOffset.x, _minPossibleContentOffset.x), MAX(newContentOffset.y, _minPossibleContentOffset.y));
     
-    _scrollView.contentOffset = newContentOffset;
+    self.contentOffset = newContentOffset;
     
     [self loadRequiredItems];
     
@@ -1497,7 +1505,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     CGPoint origin = [self.layoutStrategy originForItemAtPosition:index];
     cell.frame = CGRectMake(origin.x, origin.y, _itemSize.width, _itemSize.height);
     cell.alpha = 0;
-    [_scrollView addSubview:cell];
+    [self addSubview:cell];
     
     currentView.tag = kTagOffset - 1;
     BOOL shouldScroll = animation & GMGridViewItemAnimationScroll;
@@ -1528,12 +1536,12 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     CGPoint origin = [self.layoutStrategy originForItemAtPosition:index];
     CGRect targetRect;
     
-    if (_scrollView.pagingEnabled) 
+    if (self.pagingEnabled) 
     {
         CGPoint originScroll = CGPointZero;
         
-        CGSize pageSize = CGSizeMake(_scrollView.bounds.size.width  - _scrollView.contentInset.left - _scrollView.contentInset.right, 
-                                     _scrollView.bounds.size.height - _scrollView.contentInset.top  - _scrollView.contentInset.bottom);
+        CGSize pageSize = CGSizeMake(self.bounds.size.width  - self.contentInset.left - self.contentInset.right, 
+                                     self.bounds.size.height - self.contentInset.top  - self.contentInset.bottom);
         
         while (originScroll.x + pageSize.width < origin.x) 
         {
@@ -1577,7 +1585,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
                           delay:0
                         options:kDefaultAnimationOptions
                      animations:^{
-                         [_scrollView scrollRectToVisible:targetRect animated:NO];
+                         [self scrollRectToVisible:targetRect animated:NO];
                      } 
                      completion:^(BOOL finished){
                      }
@@ -1600,7 +1608,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
             oldView.tag = oldView.tag + 1;
         }
         
-        [_scrollView addSubview:cell];
+        [self addSubview:cell];
     }
     
     _numberTotalItems++;
@@ -1689,10 +1697,10 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     view2.frame = CGRectMake(view2Origin.x, view2Origin.y, _itemSize.width, _itemSize.height);
     
     
-    CGRect visibleRect = CGRectMake(_scrollView.contentOffset.x,
-                                    _scrollView.contentOffset.y, 
-                                    _scrollView.contentSize.width, 
-                                    _scrollView.contentSize.height);
+    CGRect visibleRect = CGRectMake(self.contentOffset.x,
+                                    self.contentOffset.y, 
+                                    self.contentSize.width, 
+                                    self.contentSize.height);
     
     // Better performance animating ourselves instead of using animated:YES in scrollRectToVisible
     BOOL shouldScroll = animation & GMGridViewItemAnimationScroll;
@@ -1716,5 +1724,14 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
                      }];
 }
 
+
+//////////////////////////////////////////////////////////////
+#pragma mark public methods
+//////////////////////////////////////////////////////////////
+
+- (UIScrollView *)scrollView
+{
+    return self;
+}
 
 @end
