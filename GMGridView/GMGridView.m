@@ -495,15 +495,6 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     [self loadRequiredItems];
 }
 
-- (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView
-{    
-    if ([self.actionDelegate respondsToSelector:@selector(GMGridViewWillBeginDragging:)])
-    {
-        [self.actionDelegate GMGridViewWillBeginDragging:self];
-    }
-}
-
-
 //////////////////////////////////////////////////////////////
 #pragma mark GestureRecognizer delegate
 //////////////////////////////////////////////////////////////

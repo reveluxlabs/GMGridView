@@ -143,9 +143,6 @@ typedef enum
 // This method wont delete the cell automatically. Call the delete method of the gridView when appropriate.
 - (void)GMGridView:(GMGridView *)gridView processDeleteActionForItemAtIndex:(NSInteger)index;
 
-// Triggered by -[UIScrollViewDelegate scrollViewWillBeginDragging:]
-- (void)GMGridViewWillBeginDragging:(GMGridView *)scrollView;
-
 @end
 
 
