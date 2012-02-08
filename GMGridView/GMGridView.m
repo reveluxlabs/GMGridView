@@ -473,7 +473,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     
     if (_gridHeaderView) [_gridHeaderView removeFromSuperview];
     _gridHeaderView = gridHeaderView;
-    if (_gridHeaderView) [self.scrollView addSubview:_gridHeaderView];
+    if (_gridHeaderView) [self addSubview:_gridHeaderView];
 
     [self setNeedsLayout];
 }
