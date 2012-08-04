@@ -147,6 +147,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 @synthesize editing = _editing;
 
 @synthesize gridHeaderView = _gridHeaderView;
+@synthesize locationLastTouch = locationLastTouch_;
 
 @synthesize itemsSubviewsCacheIsValid = _itemsSubviewsCacheIsValid;
 @synthesize itemSubviewsCache;
@@ -454,7 +455,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
 #pragma mark UIScrollView delegate replacement
 //////////////////////////////////////////////////////////////
 
-- (void)contentOffset:(CGPoint)contentOffset
+- (void)setContentOffset:(CGPoint)contentOffset
 {
     BOOL valueChanged = !CGPointEqualToPoint(contentOffset, self.contentOffset);
     
@@ -1132,6 +1133,7 @@ static const UIViewAnimationOptions kDefaultAnimationOptions = UIViewAnimationOp
     
     if (position != GMGV_INVALID_POSITION) 
     {
+        locationLastTouch_ = locationTouch;
         [self.actionDelegate GMGridView:self didTapOnItemAtIndex:position];
     }
 }

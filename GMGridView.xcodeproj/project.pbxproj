@@ -1,0 +1,216 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D45AB28015CCBA4C0089088F /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D45AB27F15CCBA4C0089088F /* Foundation.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D45AB27A15CCBA4C0089088F /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/${PRODUCT_NAME}";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		D45AB27C15CCBA4C0089088F /* libGMGridView.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libGMGridView.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		D45AB27F15CCBA4C0089088F /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D45AB27915CCBA4C0089088F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D45AB28015CCBA4C0089088F /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D45AB27115CCBA4C0089088F = {
+			isa = PBXGroup;
+			children = (
+				D45AB27E15CCBA4C0089088F /* Frameworks */,
+				D45AB27D15CCBA4C0089088F /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D45AB27D15CCBA4C0089088F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D45AB27C15CCBA4C0089088F /* libGMGridView.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D45AB27E15CCBA4C0089088F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				D45AB27F15CCBA4C0089088F /* Foundation.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D45AB27B15CCBA4C0089088F /* GMGridView */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D45AB28A15CCBA4C0089088F /* Build configuration list for PBXNativeTarget "GMGridView" */;
+			buildPhases = (
+				D45AB27815CCBA4C0089088F /* Sources */,
+				D45AB27915CCBA4C0089088F /* Frameworks */,
+				D45AB27A15CCBA4C0089088F /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = GMGridView;
+			productName = GMGridView;
+			productReference = D45AB27C15CCBA4C0089088F /* libGMGridView.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D45AB27315CCBA4C0089088F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0440;
+				ORGANIZATIONNAME = "Jim Holt";
+			};
+			buildConfigurationList = D45AB27615CCBA4C0089088F /* Build configuration list for PBXProject "GMGridView" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = D45AB27115CCBA4C0089088F;
+			productRefGroup = D45AB27D15CCBA4C0089088F /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D45AB27B15CCBA4C0089088F /* GMGridView */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D45AB27815CCBA4C0089088F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		D45AB28815CCBA4C0089088F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 5.1;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		D45AB28915CCBA4C0089088F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 5.1;
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		D45AB28B15CCBA4C0089088F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DSTROOT = /tmp/GMGridView.dst;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "GMGridView/GMGridView-Prefix.pch";
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		D45AB28C15CCBA4C0089088F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DSTROOT = /tmp/GMGridView.dst;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "GMGridView/GMGridView-Prefix.pch";
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D45AB27615CCBA4C0089088F /* Build configuration list for PBXProject "GMGridView" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D45AB28815CCBA4C0089088F /* Debug */,
+				D45AB28915CCBA4C0089088F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D45AB28A15CCBA4C0089088F /* Build configuration list for PBXNativeTarget "GMGridView" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D45AB28B15CCBA4C0089088F /* Debug */,
+				D45AB28C15CCBA4C0089088F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = D45AB27315CCBA4C0089088F /* Project object */;
+}

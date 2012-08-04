@@ -93,6 +93,7 @@ typedef enum
 - (GMGridViewCell *)dequeueReusableCellWithIdentifier:(NSString *)identifier;
 
 // Cells
+@property (nonatomic) CGPoint locationLastTouch;                      // Contains last touch only if didTapOnItemAtIndex: is called 
 - (GMGridViewCell *)cellForItemAtIndex:(NSInteger)position;           // Might return nil if cell not loaded for the specific index
 
 // Actions
