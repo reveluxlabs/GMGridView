@@ -17,6 +17,8 @@ mkdir -p $INSTALL_PATH
 
 PROJ=GMGridView.xcodeproj
 
+export CC=
+
 xcodebuild -project $PROJ -sdk iphoneos INSTALL_ROOT=$INSTALL_PATH/device install
 xcodebuild -project $PROJ -sdk iphonesimulator INSTALL_ROOT=$INSTALL_PATH/simulator install
 
